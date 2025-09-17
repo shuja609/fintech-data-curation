@@ -1,0 +1,32 @@
+# FinTech Data Curator Requirements
+
+# Core libraries
+requests>=2.31.0
+beautifulsoup4>=4.12.2
+lxml>=4.9.3
+
+# Financial data APIs
+yfinance>=0.2.21
+pandas>=2.1.0
+numpy>=1.24.0
+
+# Web scraping
+selenium>=4.15.0
+newspaper3k>=0.2.8
+
+# Data processing
+python-dateutil>=2.8.2
+pytz>=2023.3
+
+# RSS feeds
+feedparser>=6.0.10
+
+# Sentiment analysis (optional enhancement)
+textblob>=0.17.1
+
+# Configuration and utilities
+python-dotenv>=1.0.0
+tqdm>=4.66.1
+
+# Export formats
+openpyxl>=3.1.2
