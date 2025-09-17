@@ -14,6 +14,7 @@ import pandas as pd
 from .config import Config
 from .structured_data import StructuredDataCollector
 from .unstructured_data import UnstructuredDataCollector
+from .utils import setup_logging, clean_financial_data, validate_data_completeness
 from .utils import setup_logging, validate_symbol, validate_exchange
 
 class FinancialDataCollector:
@@ -44,7 +45,16 @@ class FinancialDataCollector:
             
             # Collect structured data
             self.logger.info("Collecting structured data...")
-            structured_data = self.structured_collector.get_latest_data(symbol, exchange, days)
+            raw_structured_data = self.structured_collector.get_latest_data(symbol, exchange, days)
+            
+            # Phase 1 Enhancement: Clean and validate structured data
+            self.logger.info("Cleaning and validating structured data...")
+            structured_data = clean_financial_data(raw_structured_data, self.config)
+            
+            # Validate data completeness
+            validation_result = validate_data_completeness(structured_data)
+            if not validation_result['is_valid']:
+                self.logger.warning(f"Data quality warning: {validation_result['completeness_ratio']:.2%} completeness")
             
             # Collect unstructured data
             self.logger.info("Collecting unstructured data...")
@@ -62,7 +72,9 @@ class FinancialDataCollector:
                     'collection_date': datetime.now().isoformat(),
                     'days_requested': days,
                     'days_collected': len(merged_data),
-                    'data_quality': self._assess_data_quality(merged_data)
+                    'data_quality': self._assess_data_quality(merged_data),
+                    # Phase 1 Enhancement: Add data validation metrics
+                    'data_validation': validation_result
                 },
                 'data': merged_data
             }

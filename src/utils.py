@@ -9,6 +9,8 @@ from typing import List, Dict, Any, Optional
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+import pandas as pd
+import numpy as np
 
 def setup_logging(level=logging.INFO):
     """Set up logging configuration."""
@@ -191,3 +193,145 @@ def rate_limit(delay: float = 1.0):
             return func(*args, **kwargs)
         return wrapper
     return decorator
+
+# Phase 1 Enhancement: Data validation and outlier detection functions
+def detect_outliers_iqr(data: pd.Series, multiplier: float = 1.5) -> pd.Series:
+    """Detect outliers using the IQR method."""
+    try:
+        Q1 = data.quantile(0.25)
+        Q3 = data.quantile(0.75)
+        IQR = Q3 - Q1
+        
+        lower_bound = Q1 - multiplier * IQR
+        upper_bound = Q3 + multiplier * IQR
+        
+        # Return boolean series indicating outliers
+        outliers = (data < lower_bound) | (data > upper_bound)
+        return outliers
+        
+    except Exception:
+        # Return all False if calculation fails
+        return pd.Series([False] * len(data), index=data.index)
+
+def detect_outliers_zscore(data: pd.Series, threshold: float = 3.0) -> pd.Series:
+    """Detect outliers using the Z-score method."""
+    try:
+        z_scores = np.abs((data - data.mean()) / data.std())
+        outliers = z_scores > threshold
+        return outliers
+        
+    except Exception:
+        # Return all False if calculation fails
+        return pd.Series([False] * len(data), index=data.index)
+
+def remove_outliers(df: pd.DataFrame, method: str = 'iqr', 
+                   columns: List[str] = None, **kwargs) -> pd.DataFrame:
+    """Remove outliers from specified columns in DataFrame."""
+    try:
+        if columns is None:
+            # Default to price columns
+            columns = ['open', 'high', 'low', 'close', 'volume']
+        
+        # Filter to only existing columns
+        columns = [col for col in columns if col in df.columns]
+        
+        if not columns:
+            return df
+        
+        outlier_mask = pd.Series([False] * len(df), index=df.index)
+        
+        for column in columns:
+            if column in df.columns and df[column].dtype in ['float64', 'int64']:
+                if method == 'iqr':
+                    multiplier = kwargs.get('multiplier', 1.5)
+                    col_outliers = detect_outliers_iqr(df[column], multiplier)
+                elif method == 'zscore':
+                    threshold = kwargs.get('threshold', 3.0)
+                    col_outliers = detect_outliers_zscore(df[column], threshold)
+                else:
+                    continue
+                
+                # Combine outliers from all columns
+                outlier_mask = outlier_mask | col_outliers
+        
+        # Remove rows with outliers
+        clean_df = df[~outlier_mask].copy()
+        
+        logger = logging.getLogger(__name__)
+        removed_count = len(df) - len(clean_df)
+        if removed_count > 0:
+            logger.info(f"Removed {removed_count} outlier rows using {method} method")
+        
+        return clean_df
+        
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Error removing outliers: {e}")
+        return df
+
+def validate_data_completeness(df: pd.DataFrame, min_completeness: float = 0.8) -> Dict[str, Any]:
+    """Validate data completeness and quality."""
+    try:
+        total_cells = len(df) * len(df.columns)
+        missing_cells = df.isnull().sum().sum()
+        completeness = (total_cells - missing_cells) / total_cells if total_cells > 0 else 0
+        
+        validation_result = {
+            'is_valid': completeness >= min_completeness,
+            'completeness_ratio': round(completeness, 4),
+            'total_rows': len(df),
+            'total_columns': len(df.columns),
+            'missing_values': df.isnull().sum().to_dict(),
+            'data_types': df.dtypes.to_dict()
+        }
+        
+        return validation_result
+        
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error validating data completeness: {e}")
+        return {
+            'is_valid': False,
+            'completeness_ratio': 0.0,
+            'error': str(e)
+        }
+
+def clean_financial_data(df: pd.DataFrame, config: Any = None) -> pd.DataFrame:
+    """Clean financial data by removing outliers and handling missing values."""
+    try:
+        logger = logging.getLogger(__name__)
+        logger.info("Starting financial data cleaning process")
+        
+        # Get validation settings from config if available
+        if config and hasattr(config, 'data_validation'):
+            method = config.data_validation.get('outlier_method', 'iqr')
+            multiplier = config.data_validation.get('iqr_multiplier', 1.5)
+            threshold = config.data_validation.get('zscore_threshold', 3.0)
+        else:
+            method = 'iqr'
+            multiplier = 1.5
+            threshold = 3.0
+        
+        # Remove outliers
+        if method == 'iqr':
+            clean_df = remove_outliers(df, method='iqr', multiplier=multiplier)
+        else:
+            clean_df = remove_outliers(df, method='zscore', threshold=threshold)
+        
+        # Handle missing values for critical columns
+        critical_columns = ['open', 'high', 'low', 'close', 'volume']
+        for col in critical_columns:
+            if col in clean_df.columns:
+                # Use modern pandas methods instead of deprecated fillna(method=)
+                clean_df[col] = clean_df[col].ffill().bfill()
+        
+        # Fill remaining NaN values with 0 for technical indicators
+        clean_df = clean_df.fillna(0)
+        
+        logger.info(f"Data cleaning completed. Rows: {len(df)} -> {len(clean_df)}")
+        return clean_df
+        
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error cleaning financial data: {e}")
+        return df

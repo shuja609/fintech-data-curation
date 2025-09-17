@@ -43,7 +43,13 @@ class Config:
                 'crypto_news': 'https://cointelegraph.com/rss',
                 'fintech_news': 'https://www.fintechnews.org/feed/',
                 'nasdaq_news': 'https://www.nasdaq.com/feed/rssoutbound',
-                'financial_times': 'https://www.ft.com/rss/home'
+                'financial_times': 'https://www.ft.com/rss/home',
+                # Phase 1 Enhancement: Regulatory and Government RSS feeds
+                'sec_press_releases': 'https://www.sec.gov/news/pressreleases.rss',
+                'fed_press_releases': 'https://www.federalreserve.gov/feeds/press_all.xml',
+                'treasury_press': 'https://home.treasury.gov/rss/press-releases',
+                'cftc_press': 'https://www.cftc.gov/rss/PressReleases',
+                'finra_news': 'https://www.finra.org/rss'
             }
         }
         
@@ -53,7 +59,14 @@ class Config:
             'volatility_window': 10,  # days
             'rsi_period': 14,  # days
             'bollinger_period': 20,  # days
-            'bollinger_std': 2  # standard deviations
+            'bollinger_std': 2,  # standard deviations
+            # Phase 1 Enhancement: Advanced technical indicators
+            'macd_fast': 12,  # MACD fast period
+            'macd_slow': 26,  # MACD slow period 
+            'macd_signal': 9,  # MACD signal period
+            'stoch_k_period': 14,  # Stochastic %K period
+            'stoch_d_period': 3,  # Stochastic %D period
+            'williams_r_period': 14  # Williams %R period
         }
         
         # Feature selection settings
@@ -62,7 +75,12 @@ class Config:
                 'open', 'high', 'low', 'close', 'volume',
                 'daily_return', 'volatility',
                 'ma_5', 'ma_10', 'ma_20',
-                'rsi', 'bollinger_upper', 'bollinger_lower'
+                'rsi', 'bollinger_upper', 'bollinger_lower',
+                # Phase 1 Enhancement: Advanced technical indicators
+                'macd', 'macd_signal', 'macd_histogram',
+                'stoch_k', 'stoch_d', 'williams_r',
+                # Phase 1 Enhancement: Market-wide indicators
+                'vix', 'dxy', 'treasury_10y', 'sp500_correlation'
             ],
             'unstructured': [
                 'news_headline', 'news_summary', 'news_sentiment',
@@ -99,7 +117,10 @@ class Config:
                 'dividend', 'acquisition', 'merger', 'ipo',
                 'analyst', 'rating', 'upgrade', 'downgrade',
                 'quarterly', 'annual', 'results', 'guidance',
-                'federal reserve', 'fed', 'interest rate', 'inflation'
+                'federal reserve', 'fed', 'interest rate', 'inflation',
+                # Phase 1 Enhancement: Regulatory keywords
+                'sec', 'securities commission', 'regulatory', 'compliance',
+                'treasury', 'cftc', 'finra', 'government', 'policy'
             ]
         }
         
@@ -109,6 +130,26 @@ class Config:
             'NASDAQ': {'suffix': '', 'market': 'US'},
             'PSX': {'suffix': '.KHI', 'market': 'PK'},
             'CRYPTO': {'suffix': '', 'market': 'CRYPTO'}
+        }
+        
+        # Phase 1 Enhancement: Market-wide indicators configuration
+        self.market_indicators = {
+            'vix': '^VIX',  # CBOE Volatility Index
+            'dxy': 'DX-Y.NYB',  # US Dollar Index
+            'treasury_10y': '^TNX',  # 10-Year Treasury Note Yield
+            'sp500': '^GSPC',  # S&P 500 Index
+            'nasdaq': '^IXIC',  # NASDAQ Composite
+            'dow_jones': '^DJI',  # Dow Jones Industrial Average
+            'russell_2000': '^RUT'  # Russell 2000 Index
+        }
+        
+        # Phase 1 Enhancement: Data validation settings
+        self.data_validation = {
+            'outlier_method': 'iqr',  # 'iqr' or 'zscore'
+            'iqr_multiplier': 1.5,  # IQR multiplier for outlier detection
+            'zscore_threshold': 3,  # Z-score threshold for outlier detection
+            'min_data_points': 5,  # Minimum data points required
+            'max_missing_percentage': 20  # Maximum percentage of missing data allowed
         }
     
     def get_symbol_with_suffix(self, symbol: str, exchange: str) -> str:

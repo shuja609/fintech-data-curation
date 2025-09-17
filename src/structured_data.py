@@ -11,6 +11,13 @@ from typing import Dict, List, Optional, Tuple
 import logging
 from .utils import safe_float, setup_logging
 
+# Phase 1 Enhancement: Try to import pandas_ta for advanced indicators
+try:
+    import pandas_ta as ta
+    PANDAS_TA_AVAILABLE = True
+except ImportError:
+    PANDAS_TA_AVAILABLE = False
+
 class StructuredDataCollector:
     """Collector for structured financial data (OHLCV + technical indicators)."""
     
@@ -95,6 +102,12 @@ class StructuredDataCollector:
                 df['close'], bb_period, bb_std
             )
             
+            # Phase 1 Enhancement: Advanced technical indicators
+            df = self._calculate_advanced_indicators(df)
+            
+            # Phase 1 Enhancement: Market-wide indicators
+            df = self._add_market_indicators(df)
+            
             self.logger.info("Technical indicators calculated successfully")
             return df
             
@@ -117,6 +130,169 @@ class StructuredDataCollector:
         except Exception:
             # Return series of NaN if calculation fails
             return pd.Series([np.nan] * len(prices), index=prices.index)
+    
+    def _calculate_advanced_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Calculate advanced technical indicators (MACD, Stochastic, Williams %R)."""
+        try:
+            # MACD (Moving Average Convergence Divergence)
+            macd_data = self._calculate_macd(
+                df['close'],
+                self.config.technical_indicators['macd_fast'],
+                self.config.technical_indicators['macd_slow'],
+                self.config.technical_indicators['macd_signal']
+            )
+            df['macd'] = macd_data['macd']
+            df['macd_signal'] = macd_data['signal']
+            df['macd_histogram'] = macd_data['histogram']
+            
+            # Stochastic Oscillator
+            stoch_data = self._calculate_stochastic(
+                df['high'], df['low'], df['close'],
+                self.config.technical_indicators['stoch_k_period'],
+                self.config.technical_indicators['stoch_d_period']
+            )
+            df['stoch_k'] = stoch_data['k']
+            df['stoch_d'] = stoch_data['d']
+            
+            # Williams %R
+            df['williams_r'] = self._calculate_williams_r(
+                df['high'], df['low'], df['close'],
+                self.config.technical_indicators['williams_r_period']
+            )
+            
+            return df
+            
+        except Exception as e:
+            self.logger.warning(f"Error calculating advanced indicators: {e}")
+            # Add NaN columns if calculation fails
+            for col in ['macd', 'macd_signal', 'macd_histogram', 'stoch_k', 'stoch_d', 'williams_r']:
+                df[col] = np.nan
+            return df
+    
+    def _calculate_macd(self, prices: pd.Series, fast: int = 12, slow: int = 26, signal: int = 9) -> Dict:
+        """Calculate MACD indicator."""
+        try:
+            # Calculate exponential moving averages
+            ema_fast = prices.ewm(span=fast).mean()
+            ema_slow = prices.ewm(span=slow).mean()
+            
+            # MACD line
+            macd_line = ema_fast - ema_slow
+            
+            # Signal line
+            signal_line = macd_line.ewm(span=signal).mean()
+            
+            # Histogram
+            histogram = macd_line - signal_line
+            
+            return {
+                'macd': macd_line,
+                'signal': signal_line,
+                'histogram': histogram
+            }
+            
+        except Exception:
+            nan_series = pd.Series([np.nan] * len(prices), index=prices.index)
+            return {'macd': nan_series, 'signal': nan_series, 'histogram': nan_series}
+    
+    def _calculate_stochastic(self, high: pd.Series, low: pd.Series, close: pd.Series, 
+                            k_period: int = 14, d_period: int = 3) -> Dict:
+        """Calculate Stochastic Oscillator."""
+        try:
+            # Calculate %K
+            lowest_low = low.rolling(window=k_period).min()
+            highest_high = high.rolling(window=k_period).max()
+            
+            k_percent = 100 * ((close - lowest_low) / (highest_high - lowest_low))
+            
+            # Calculate %D (moving average of %K)
+            d_percent = k_percent.rolling(window=d_period).mean()
+            
+            return {'k': k_percent, 'd': d_percent}
+            
+        except Exception:
+            nan_series = pd.Series([np.nan] * len(close), index=close.index)
+            return {'k': nan_series, 'd': nan_series}
+    
+    def _calculate_williams_r(self, high: pd.Series, low: pd.Series, close: pd.Series, 
+                            period: int = 14) -> pd.Series:
+        """Calculate Williams %R indicator."""
+        try:
+            highest_high = high.rolling(window=period).max()
+            lowest_low = low.rolling(window=period).min()
+            
+            williams_r = -100 * ((highest_high - close) / (highest_high - lowest_low))
+            
+            return williams_r
+            
+        except Exception:
+            return pd.Series([np.nan] * len(close), index=close.index)
+    
+    def _add_market_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Add market-wide indicators for context."""
+        try:
+            # Get market indicators from config
+            market_data = self._fetch_market_indicators()
+            
+            # Add market indicators to dataframe
+            if market_data:
+                # Get the latest values for each market indicator
+                df['vix'] = market_data.get('vix', np.nan)
+                df['dxy'] = market_data.get('dxy', np.nan)
+                df['treasury_10y'] = market_data.get('treasury_10y', np.nan)
+                
+                # Calculate correlation with S&P 500
+                if 'sp500' in market_data and not df.empty:
+                    sp500_change = market_data.get('sp500_change', 0)
+                    stock_change = df['daily_return'].iloc[-1] if not df['daily_return'].isna().all() else 0
+                    df['sp500_correlation'] = sp500_change * stock_change  # Simple correlation proxy
+                else:
+                    df['sp500_correlation'] = np.nan
+            else:
+                # Add NaN values if market data unavailable
+                for col in ['vix', 'dxy', 'treasury_10y', 'sp500_correlation']:
+                    df[col] = np.nan
+            
+            return df
+            
+        except Exception as e:
+            self.logger.warning(f"Error adding market indicators: {e}")
+            # Add NaN columns if market data fails
+            for col in ['vix', 'dxy', 'treasury_10y', 'sp500_correlation']:
+                df[col] = np.nan
+            return df
+    
+    def _fetch_market_indicators(self) -> Dict:
+        """Fetch current market-wide indicators."""
+        try:
+            market_data = {}
+            
+            # Fetch key market indicators
+            for indicator, symbol in self.config.market_indicators.items():
+                try:
+                    ticker = yf.Ticker(symbol)
+                    data = ticker.history(period='5d')
+                    
+                    if not data.empty:
+                        latest_close = data['Close'].iloc[-1]
+                        market_data[indicator] = round(float(latest_close), 4)
+                        
+                        # Calculate change for S&P 500
+                        if indicator == 'sp500' and len(data) >= 2:
+                            prev_close = data['Close'].iloc[-2]
+                            change = (latest_close - prev_close) / prev_close
+                            market_data['sp500_change'] = round(float(change), 6)
+                            
+                except Exception as e:
+                    self.logger.debug(f"Failed to fetch {indicator}: {e}")
+                    market_data[indicator] = np.nan
+            
+            self.logger.info(f"Fetched {len(market_data)} market indicators")
+            return market_data
+            
+        except Exception as e:
+            self.logger.warning(f"Error fetching market indicators: {e}")
+            return {}
     
     def _calculate_bollinger_bands(self, prices: pd.Series, period: int = 20, 
                                  std_dev: float = 2) -> Tuple[pd.Series, pd.Series]:
