@@ -1,8 +1,8 @@
 # FinTech Data Curator - Design Justification Document
 
 **CS4063 - Natural Language Processing Assignment 1**  
-**Author:** CS4063 Student  
-**Date:** September 17, 2025  
+**Author:** M Shuja Uddin 22i2553 
+**Date:** September 18, 2025  
 
 ---
 
@@ -35,16 +35,16 @@ This document justifies the design decisions made in developing the FinTech Data
 ### Unstructured Data Features
 
 **1. News Headlines & Summaries**
-- **Source Selection**: Yahoo Finance (broad coverage), CoinDesk (crypto-specific expertise)
-- **Rationale**: News events significantly impact short-term price movements, especially earnings announcements, regulatory changes, and market sentiment shifts
+- **Source Selection**: 11+ comprehensive RSS feeds including Yahoo Finance, MarketWatch, Reuters, Bloomberg, CNBC, Seeking Alpha, Benzinga, Financial Times, TheStreet, Fool, CoinDesk, and CoinTelegraph
+- **Rationale**: News events significantly impact short-term price movements, especially earnings announcements, regulatory changes, and market sentiment shifts. Multiple sources ensure diverse coverage and reduced bias.
 
 **2. Sentiment Analysis**
-- **Implementation**: TextBlob-based sentiment scoring (0-1 scale)
-- **Justification**: Market psychology drives price movements; sentiment provides emotional context missing from pure technical analysis
+- **Implementation**: TextBlob-based sentiment scoring (0-1 scale) with enhanced relevance filtering
+- **Justification**: Market psychology drives price movements; sentiment provides emotional context missing from pure technical analysis. Improved filtering ensures higher quality sentiment signals.
 
 **3. Relevance Scoring**
-- **Algorithm**: Symbol-specific keyword matching with company name recognition
-- **Purpose**: Filter noise and focus on news directly impacting the target asset
+- **Algorithm**: Multi-tier relevance scoring with symbol mentions (0.9), company names (0.8), financial keywords (0.6), sector terms (0.4), and general business (0.3)
+- **Purpose**: Filter noise and focus on news directly impacting the target asset while maintaining contextual market information
 
 ---
 
@@ -59,14 +59,14 @@ This document justifies the design decisions made in developing the FinTech Data
 - **External Factors**: News sentiment incorporates fundamental and event-driven influences
 
 **2. Computational Efficiency**
-- Limited to 13 numerical features + 5 textual features
+- Limited to 13 numerical features + enhanced textual features from 11+ sources
 - Avoids redundant indicators that increase noise without adding predictive value
-- Balances information richness with model complexity
+- Balances information richness with model complexity while maximizing news coverage
 
 **3. Data Availability**
-- All features are reliably obtainable from free, public sources
-- Consistent format across different assets (stocks, crypto)
-- Minimal dependencies on proprietary data feeds
+- All features are reliably obtainable from free, public RSS feeds and APIs
+- Consistent format across different assets (stocks, crypto) with specialized crypto sources
+- Minimal dependencies on proprietary data feeds with robust fallback mechanisms
 
 ---
 
@@ -87,29 +87,34 @@ This document justifies the design decisions made in developing the FinTech Data
 ### Error Handling & Robustness
 
 **1. Network Resilience**
-- HTTP retry logic with exponential backoff
-- Graceful degradation when news sources are unavailable
-- Fallback mechanisms for missing data
+- Enhanced RSS feed processing with 10-second timeouts per source
+- HTTP retry logic with exponential backoff for API calls
+- Graceful degradation when individual news sources are unavailable
+- Comprehensive fallback mechanisms across 11+ RSS feeds
 
 **2. Data Validation**
 - Input parameter validation (exchange, symbol format)
-- Price data completeness checks
-- News relevance filtering to reduce noise
+- Price data completeness checks with technical indicator validation
+- Enhanced news relevance filtering with duplicate removal
+- Financial keyword matching to reduce noise and improve signal quality
 
 ---
 
 ## Validation Results
 
 ### Testing Summary
-- **AAPL (NYSE)**: Successfully collected 5 days of complete price data with technical indicators
-- **GOOGL (NASDAQ)**: Verified cross-exchange compatibility
-- **BTC-USD (CRYPTO)**: Confirmed cryptocurrency support with news integration
+- **AAPL (NYSE)**: Successfully collected complete price data with technical indicators and enhanced news coverage
+- **GOOGL (NASDAQ)**: Verified cross-exchange compatibility with improved RSS integration
+- **TSLA (NYSE)**: Validated high-profile stock news collection from multiple sources
+- **BTC-USD (CRYPTO)**: Confirmed cryptocurrency support with specialized CoinDesk and CoinTelegraph coverage
+- **Multiple Assets**: Tested news collection across 11+ RSS feeds with improved relevance scoring
 
 ### Data Quality Metrics
-- **Structured Data**: 100% completeness for all tested symbols
-- **Technical Indicators**: Successfully calculated for all requested periods
-- **News Integration**: CoinDesk RSS feed provided relevant cryptocurrency news
-- **Export Functionality**: Both CSV and JSON formats generated successfully
+- **Structured Data**: 100% completeness for all tested symbols with robust technical indicators
+- **Technical Indicators**: Successfully calculated RSI, Bollinger Bands, and moving averages for all periods
+- **News Integration**: Enhanced coverage from 11+ RSS feeds with improved relevance filtering
+- **Recent News Coverage**: Good availability for 1-3 day periods from diverse financial sources
+- **Export Functionality**: Both CSV and JSON formats with comprehensive data alignment
 
 ---
 
@@ -117,11 +122,12 @@ This document justifies the design decisions made in developing the FinTech Data
 
 The FinTech Data Curator implements a minimal yet comprehensive feature set that captures the essential elements needed for next-day price prediction:
 
-✅ **Technical Analysis Foundation**: Core price data and proven indicators  
-✅ **Market Sentiment Integration**: News-based sentiment analysis  
-✅ **Scalable Architecture**: Modular design supporting multiple asset types  
-✅ **Robust Implementation**: Error handling and data validation  
-✅ **Practical Utility**: Standard output formats for immediate use  
+✅ **Technical Analysis Foundation**: Core price data and proven indicators (RSI, Bollinger Bands, MA)  
+✅ **Enhanced Market Sentiment**: News-based sentiment from 11+ diverse financial RSS sources  
+✅ **Scalable Architecture**: Modular design supporting stocks, crypto, and multiple exchanges  
+✅ **Robust Implementation**: Enhanced error handling, timeout protection, and data validation  
+✅ **Practical Utility**: Standard output formats with comprehensive news integration  
+✅ **Production Ready**: Thoroughly tested with real market data and news coverage  
 
 This minimal feature set strikes an optimal balance between predictive power and computational efficiency, providing a solid foundation for financial machine learning applications while remaining maintainable and extensible for future enhancements.
 

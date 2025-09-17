@@ -31,6 +31,19 @@ class Config:
                 'base_url': 'https://www.coindesk.com',
                 'rss_url': 'https://www.coindesk.com/arc/outboundfeeds/rss/',
                 'timeout': 30
+            },
+            'additional_rss_feeds': {
+                'marketwatch': 'https://feeds.marketwatch.com/marketwatch/topstories/',
+                'reuters_business': 'https://feeds.reuters.com/reuters/businessNews',
+                'reuters_markets': 'https://feeds.reuters.com/news/artsculture',
+                'bloomberg_markets': 'https://feeds.bloomberg.com/markets/news.rss',
+                'cnbc_finance': 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664',
+                'seeking_alpha': 'https://seekingalpha.com/feed.xml',
+                'benzinga': 'https://www.benzinga.com/feed',
+                'crypto_news': 'https://cointelegraph.com/rss',
+                'fintech_news': 'https://www.fintechnews.org/feed/',
+                'nasdaq_news': 'https://www.nasdaq.com/feed/rssoutbound',
+                'financial_times': 'https://www.ft.com/rss/home'
             }
         }
         
@@ -75,12 +88,18 @@ class Config:
         
         # News filtering settings
         self.news_filters = {
-            'max_articles_per_day': 10,
+            'max_articles_per_day': 15,
             'min_headline_length': 10,
             'relevant_keywords': [
                 'stock', 'market', 'trading', 'price', 'earnings',
                 'revenue', 'profit', 'loss', 'shares', 'investment',
-                'crypto', 'bitcoin', 'cryptocurrency', 'blockchain'
+                'crypto', 'bitcoin', 'cryptocurrency', 'blockchain',
+                'financial', 'finance', 'economy', 'economic',
+                'nasdaq', 'nyse', 'exchange', 'securities',
+                'dividend', 'acquisition', 'merger', 'ipo',
+                'analyst', 'rating', 'upgrade', 'downgrade',
+                'quarterly', 'annual', 'results', 'guidance',
+                'federal reserve', 'fed', 'interest rate', 'inflation'
             ]
         }
         

@@ -102,13 +102,16 @@ def calculate_relevance_score(headline: str, symbol: str) -> float:
     
     # Company name mapping (simplified)
     company_names = {
-        'aapl': ['apple', 'iphone', 'ipad', 'mac'],
-        'googl': ['google', 'alphabet', 'android'],
-        'msft': ['microsoft', 'windows', 'office'],
-        'amzn': ['amazon', 'aws', 'prime'],
-        'tsla': ['tesla', 'elon musk'],
-        'btc': ['bitcoin', 'btc'],
-        'eth': ['ethereum', 'eth']
+        'aapl': ['apple', 'iphone', 'ipad', 'mac', 'tim cook'],
+        'googl': ['google', 'alphabet', 'android', 'youtube', 'chrome'],
+        'msft': ['microsoft', 'windows', 'office', 'azure', 'teams'],
+        'amzn': ['amazon', 'aws', 'prime', 'bezos'],
+        'tsla': ['tesla', 'elon musk', 'electric vehicle', 'ev'],
+        'meta': ['facebook', 'instagram', 'whatsapp', 'metaverse'],
+        'nflx': ['netflix', 'streaming'],
+        'nvda': ['nvidia', 'gpu', 'ai chip'],
+        'btc': ['bitcoin', 'btc', 'cryptocurrency'],
+        'eth': ['ethereum', 'eth', 'smart contract']
     }
     
     if symbol_lower in company_names:
@@ -116,13 +119,28 @@ def calculate_relevance_score(headline: str, symbol: str) -> float:
             if term in headline_lower:
                 return 0.8
     
-    # Market-related keywords
-    market_keywords = ['stock', 'market', 'shares', 'trading', 'investment']
+    # Sector-specific keywords for better relevance
+    tech_keywords = ['technology', 'tech', 'software', 'digital', 'ai', 'artificial intelligence']
+    finance_keywords = ['bank', 'financial', 'credit', 'loan', 'payment']
+    market_keywords = ['stock', 'market', 'shares', 'trading', 'investment', 'earnings', 'revenue', 'profit']
+    
+    # Higher relevance for market-related news
     for keyword in market_keywords:
         if keyword in headline_lower:
-            return 0.5
+            return 0.6
     
-    return 0.2  # Base relevance for any financial news
+    # Medium relevance for sector news
+    for keyword in tech_keywords + finance_keywords:
+        if keyword in headline_lower:
+            return 0.4
+    
+    # General financial news
+    general_keywords = ['economy', 'economic', 'business', 'corporate', 'industry']
+    for keyword in general_keywords:
+        if keyword in headline_lower:
+            return 0.3
+    
+    return 0.1  # Very low but not zero relevance for any news
 
 def format_currency(value: float, currency: str = 'USD') -> str:
     """Format currency values consistently."""
